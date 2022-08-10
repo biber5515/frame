@@ -1,12 +1,16 @@
 package com.example.frame
 
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 
@@ -31,7 +35,9 @@ class MainActivity : AppCompatActivity() {
 
         }
     }
+    private val imageUriList:MutableList<Uri> = mutableListOf()
 
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -40,6 +46,7 @@ class MainActivity : AppCompatActivity() {
         initStartPhotoFrameModeButton()
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     private fun initAddPhotoButton(){
         addPhotoButton.setOnClickListener {
             when{
@@ -62,10 +69,49 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    private fun initStartPhotoFrameModeButton(){
+        startPhotoFrameModeButton.setOnClickListener {
+            val intent=Intent(this,PhotoFrameActivity::class.java)
+            imageUriList.forEachIndexed { index, uri ->
+                intent.putExtra("photo$index",uri.toString())
+            }
+            intent.putExtra("photoListSize",imageUriList.size)
+            startActivity(intent)
+        }
+
+    }
     private fun navigatePhotos(){
         val intent = Intent(Intent.ACTION_GET_CONTENT)
         intent.type="image/*"
         startActivityForResult(intent,2000)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(resultCode!= Activity.RESULT_OK){
+            return
+        }
+
+        when(requestCode){
+            2000->{
+                val selectedImageUri : Uri? =data?.data
+                if(selectedImageUri!=null){
+                    if(imageUriList.size==6){
+                        Toast.makeText(this,"이미 사진이 꽉 찼습니다",Toast.LENGTH_SHORT).show()
+                        return
+                    }
+                    imageUriList.add(selectedImageUri)
+                    imageViewList[imageUriList.size-1].setImageURI(selectedImageUri)
+                }else{
+                    Toast.makeText(this,"사진을가져오지못했습니다",Toast.LENGTH_SHORT).show()
+                }
+
+            }
+            else->{
+                Toast.makeText(this,"사진을가져오지못했습니다",Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -91,6 +137,7 @@ class MainActivity : AppCompatActivity() {
 
         }
     }
+    @RequiresApi(Build.VERSION_CODES.M)
     private fun showPermissionContextPopup(){
         AlertDialog.Builder(this)
             .setTitle("권한이 필요합니다.")
@@ -103,7 +150,5 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun initStartPhotoFrameModeButton(){
 
-    }
 }
